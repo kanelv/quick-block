@@ -1,5 +1,11 @@
 # Threads Quick Block
 
+![Node.js](https://img.shields.io/badge/Node.js-339933?logo=nodedotjs&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white)
+![Chrome Extension](https://img.shields.io/badge/Chrome_Extension-MV3-4285F4?logo=googlechrome&logoColor=white)
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow)
+
 Chrome extension (Manifest V3) that adds a one-click block button to each post on https://www.threads.net, next to like/reply/repost/share.
 
 It drives Threads' native UI: opens the post's `...` menu, clicks "Block", and confirms. Selectors depend on Threads' DOM and may break when it changes.
@@ -47,6 +53,10 @@ After changes: reload the extension in `chrome://extensions`, then refresh the T
 - `manifest.json` - MV3 config, content script on `https://www.threads.net/*`
 - `src/content.ts` - MutationObserver, button injection, block automation
 - `SYSTEM_DESIGN.md` - MVP design
+
+## Author
+
+Kane Le - [cuonglrepvn@gmail.com](mailto:cuonglrepvn@gmail.com)
 
 ## License
 
