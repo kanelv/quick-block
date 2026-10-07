@@ -1,8 +1,8 @@
 // All Threads DOM knowledge lives in SEL/TEXT. Threads is brittle; fix selectors here only.
 const SEL = {
-  // Action-row anchors: native icons carry aria-labels / svg titles.
-  likeIcon: 'svg[aria-label="Like"], svg[aria-label="Unlike"]',
-  moreIcon: 'svg[aria-label="More"]',
+  // Native icons are <svg title="..."> (no aria-label). Block button goes right after Share.
+  shareIcon: 'svg[title="Share"]',
+  moreIcon: 'svg[title="More"]',
   menuItem: '[role="menuitem"], [role="button"], div[tabindex="0"]',
   dialog: '[role="dialog"]',
 };
@@ -28,10 +28,9 @@ const clickable = (svg: Element) => (svg.closest('[role="button"]') as HTMLEleme
 const findByText = (root: ParentNode, re: RegExp) =>
   Array.from(root.querySelectorAll<HTMLElement>(SEL.menuItem)).find((el) => re.test(el.textContent?.trim() ?? ""));
 
-/** Walk up from the like icon to the row that holds all action buttons. */
-function actionRow(like: Element): HTMLElement | null {
-  const btn = clickable(like);
-  return btn?.parentElement ?? null;
+/** Each action button sits in its own wrapper div; the row is the wrapper's parent. */
+function actionRow(share: Element): HTMLElement | null {
+  return clickable(share)?.parentElement?.parentElement ?? null;
 }
 
 /** Walk up from the action row to the post card containing a "More" icon. */
@@ -84,16 +83,17 @@ function makeButton(card: HTMLElement): HTMLElement {
   return b;
 }
 
-function inject(like: Element) {
-  const row = actionRow(like);
-  if (!row || row.querySelector(`[${MARK}]`)) return;
+function inject(share: Element) {
+  const wrapper = clickable(share)?.parentElement;
+  const row = actionRow(share);
+  if (!wrapper || !row || row.querySelector(`[${MARK}]`)) return;
   const card = cardOf(row);
   if (!card) return;
-  row.appendChild(makeButton(card));
+  wrapper.after(makeButton(card));
 }
 
 function scan(root: ParentNode = document) {
-  root.querySelectorAll(SEL.likeIcon).forEach(inject);
+  root.querySelectorAll(SEL.shareIcon).forEach(inject);
 }
 
 const style = document.createElement("style");
