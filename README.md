@@ -10,7 +10,7 @@ No API or token usage: clicks go through Threads' own JS, so your existing sessi
 
 From a release (no build needed):
 
-1. Download `quick-block.zip` from [Releases](../../releases) and unzip it
+1. Download `quick-block-vX.Y.Z.zip` from [Releases](../../releases) and unzip it
 2. Open `chrome://extensions` and enable Developer Mode
 3. Load unpacked -> select the unzipped folder
 
