@@ -4,6 +4,8 @@ Chrome extension (Manifest V3) that adds a one-click block button to each post o
 
 It drives Threads' native UI: opens the post's `...` menu, clicks "Block", and confirms. Selectors depend on Threads' DOM and may break when it changes.
 
+No API or token usage: clicks go through Threads' own JS, so your existing session handles auth. Permissions: `activeTab`, `scripting` only.
+
 ## Install
 
 ```bash
@@ -15,11 +17,24 @@ npm run build
 2. Enable Developer Mode
 3. Load unpacked -> select `dist/`
 
+## Use
+
+1. Open https://www.threads.net and log in
+2. Click the block button in a post's action row
+3. The account is blocked immediately (no extra prompt)
+
 ## Develop
 
 ```bash
-npm run dev    # rebuild on change; reload the extension in chrome://extensions
+npm run dev    # rebuild on change
 ```
+
+After changes: reload the extension in `chrome://extensions`, then refresh the Threads tab.
+
+## Troubleshooting
+
+- No button / block fails: filter DevTools console for `[tqb]`
+- Fix selectors and menu text in `SEL` / `TEXT` at the top of `src/content.ts`
 
 ## Layout
 
