@@ -4,18 +4,24 @@ Chrome extension (Manifest V3) that adds a one-click block button to each post o
 
 It drives Threads' native UI: opens the post's `...` menu, clicks "Block", and confirms. Selectors depend on Threads' DOM and may break when it changes.
 
-No API or token usage: clicks go through Threads' own JS, so your existing session handles auth. Permissions: `activeTab`, `scripting` only.
+No API or token usage: clicks go through Threads' own JS, so your existing session handles auth. No extra permissions requested.
 
 ## Install
+
+From a release (no build needed):
+
+1. Download `quick-block.zip` from [Releases](../../releases) and unzip it
+2. Open `chrome://extensions` and enable Developer Mode
+3. Load unpacked -> select the unzipped folder
+
+From source:
 
 ```bash
 npm install
 npm run build
 ```
 
-1. Open `chrome://extensions`
-2. Enable Developer Mode
-3. Load unpacked -> select `dist/`
+Then Load unpacked -> select `dist/`. Updates are manual: download the new release and reload the extension.
 
 ## Use
 
@@ -41,3 +47,7 @@ After changes: reload the extension in `chrome://extensions`, then refresh the T
 - `manifest.json` - MV3 config, content script on `https://www.threads.net/*`
 - `src/content.ts` - MutationObserver, button injection, block automation
 - `SYSTEM_DESIGN.md` - MVP design
+
+## License
+
+MIT
