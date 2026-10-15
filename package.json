@@ -6,12 +6,15 @@
   "type": "module",
   "scripts": {
     "build": "tsc --noEmit && vite build",
+    "test": "vitest run",
     "dev": "vite build --watch"
   },
   "devDependencies": {
     "@crxjs/vite-plugin": "^2.7.1",
     "@types/chrome": "^0.0.270",
+    "jsdom": "^30.1.3",
     "typescript": "^5.5.0",
-    "vite": "^8.3.2"
+    "vite": "^8.3.2",
+    "vitest": "^5.0.5"
   }
 }

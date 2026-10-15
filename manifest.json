@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Threads Quick Block",
+  "name": "Quick Block",
   "version": "0.1.1",
-  "description": "One-click block button on Threads posts.",
+  "description": "One-click block button on Threads and TikTok.",
   "content_scripts": [
     {
       "matches": [
@@ -13,11 +13,24 @@
         "src/content.ts"
       ],
       "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://www.tiktok.com/*"
+      ],
+      "js": [
+        "src/tiktok.ts"
+      ],
+      "run_at": "document_idle"
     }
   ],
   "icons": {
     "16": "public/icons/icon-16.png",
     "48": "public/icons/icon-48.png",
     "128": "public/icons/icon-128.png"
+  },
+  "background": {
+    "service_worker": "src/background.ts",
+    "type": "module"
   }
 }

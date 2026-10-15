@@ -1,32 +1,13 @@
+import { MARK, clickable, findByText, makeButton, injectStyle, waitFor } from "./shared";
+
 // All Threads DOM knowledge lives in SEL/TEXT. Threads is brittle; fix selectors here only.
 const SEL = {
   // Native icons are <svg title="..."> (no aria-label). Block button goes right after Share.
   shareIcon: 'svg[title="Share"]',
   moreIcon: 'svg[title="More"]',
-  menuItem: '[role="menuitem"], [role="button"], div[tabindex="0"]',
   dialog: '[role="dialog"]',
 };
 const TEXT = { block: /^block$/i };
-const MARK = "data-tqb";
-const WAIT_MS = 1500;
-
-const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-/** Poll until fn returns truthy or timeout. */
-async function waitFor<T>(fn: () => T | null | undefined, ms = WAIT_MS): Promise<T | null> {
-  const end = Date.now() + ms;
-  while (Date.now() < end) {
-    const v = fn();
-    if (v) return v;
-    await wait(50);
-  }
-  return null;
-}
-
-const clickable = (svg: Element) => (svg.closest('[role="button"]') as HTMLElement) ?? (svg.parentElement as HTMLElement);
-
-const findByText = (root: ParentNode, re: RegExp) =>
-  Array.from(root.querySelectorAll<HTMLElement>(SEL.menuItem)).find((el) => re.test(el.textContent?.trim() ?? ""));
 
 /** Each action button sits in its own wrapper div; the row is the wrapper's parent. */
 function actionRow(share: Element): HTMLElement | null {
@@ -61,27 +42,8 @@ async function blockFlow(card: HTMLElement) {
   confirm.click();
 }
 
-const ICON =
-  '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg>';
-
-function makeButton(card: HTMLElement): HTMLElement {
-  const b = document.createElement("div");
-  b.setAttribute(MARK, "");
-  b.setAttribute("role", "button");
-  b.setAttribute("tabindex", "0");
-  b.setAttribute("aria-label", "Block user");
-  b.title = "Block user";
-  b.innerHTML = ICON;
-  b.className = "tqb-btn";
-  const go = (e: Event) => {
-    e.preventDefault();
-    e.stopPropagation();
-    blockFlow(card).catch((err) => console.warn("[tqb]", err));
-  };
-  b.addEventListener("click", go);
-  b.addEventListener("keydown", (e) => (e.key === "Enter" || e.key === " ") && go(e));
-  return b;
-}
+const makeBlockButton = (card: HTMLElement) =>
+  makeButton(() => blockFlow(card).catch((err) => console.warn("[tqb]", err)));
 
 function inject(share: Element) {
   const wrapper = clickable(share)?.parentElement;
@@ -89,19 +51,14 @@ function inject(share: Element) {
   if (!wrapper || !row || row.querySelector(`[${MARK}]`)) return;
   const card = cardOf(row);
   if (!card) return;
-  wrapper.after(makeButton(card));
+  wrapper.after(makeBlockButton(card));
 }
 
 function scan(root: ParentNode = document) {
   root.querySelectorAll(SEL.shareIcon).forEach(inject);
 }
 
-const style = document.createElement("style");
-// currentColor follows Threads' light/dark theme automatically.
-style.textContent = `.tqb-btn{display:inline-flex;align-items:center;justify-content:center;
-width:36px;height:36px;border-radius:50%;cursor:pointer;color:inherit;opacity:.6}
-.tqb-btn:hover{opacity:1;background:rgba(128,128,128,.15)}`;
-document.head.appendChild(style);
+injectStyle();
 
 scan();
 let queued = false;
