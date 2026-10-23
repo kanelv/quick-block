@@ -3,7 +3,7 @@ import { BlockResult, parseProfileUrl } from "./shared";
 const err = (reason: string): BlockResult => ({ status: "error", reason });
 
 /** Open the profile in an active temp tab (TikTok's modal stalls until the tab is visible), ask its content script to block, always close the tab. */
-export function blockViaTab(href: string, timeoutMs = 20000): Promise<BlockResult> {
+export function blockViaTab(href: string, originTabId?: number, timeoutMs = 20000): Promise<BlockResult> {
   const target = parseProfileUrl(href);
   if (!target) return Promise.resolve(err("invalid profile url"));
 
@@ -17,7 +17,15 @@ export function blockViaTab(href: string, timeoutMs = 20000): Promise<BlockResul
       clearTimeout(timer);
       chrome.tabs.onUpdated.removeListener(onUpdated);
       chrome.tabs.onRemoved.removeListener(onRemoved);
-      if (tabId != null) chrome.tabs.remove(tabId).catch(() => {}); // only our own temp tab
+      // Close only our own temp tab, then return focus to the page the click came from.
+      if (tabId != null)
+        chrome.tabs
+          .remove(tabId)
+          .catch(() => {})
+          .then(() => {
+            if (originTabId != null) return chrome.tabs.update(originTabId, { active: true });
+          })
+          .catch(() => {});
       resolve(r);
     };
     const timer = setTimeout(() => finish(err("timeout")), timeoutMs);
@@ -41,7 +49,7 @@ export function blockViaTab(href: string, timeoutMs = 20000): Promise<BlockResul
     }
 
     try {
-      const tab = await chrome.tabs.create({ url: target.url, active: true });
+      const tab = await chrome.tabs.create({ url: target.url, active: true, openerTabId: originTabId });
       tabId = tab.id;
       if (tabId == null) return finish(err("tab creation failed"));
       if (tab.status === "complete") run();
@@ -52,9 +60,9 @@ export function blockViaTab(href: string, timeoutMs = 20000): Promise<BlockResul
 }
 
 if (typeof chrome !== "undefined" && chrome.runtime?.id) {
-  chrome.runtime.onMessage.addListener((m, _sender, reply) => {
+  chrome.runtime.onMessage.addListener((m, sender, reply) => {
     if (m?.type !== "tqb-block") return;
-    blockViaTab(m.url).then(reply);
+    blockViaTab(m.url, sender.tab?.id).then(reply);
     return true;
   });
 }

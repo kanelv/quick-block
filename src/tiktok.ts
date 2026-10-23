@@ -2,10 +2,11 @@ import { MARK, BlockResult, injectStyle, makeButton, parseProfileUrl, setState, 
 
 // All TikTok DOM knowledge lives in SEL. Prefer data-e2e / aria attributes over generated classes.
 const SEL = {
-  // Per-comment header (top-level "-1" and replies "-2"); contains author link and the "..." trigger.
+  // Display-name span (top-level "-1" and replies "-2"), nested in the author's /@handle link.
   commentUser: '[data-e2e^="comment-username-"]',
   authorLink: 'a[href^="/@"]',
-  moreTrigger: '[aria-haspopup="dialog"]',
+  // Per-comment "..." button, in the action column beside the like button (not in the name header).
+  moreTrigger: '[role="button"][aria-label="more"]',
   // Profile page: bare handle sits in the subtitle.
   profileHandle: '[data-e2e="user-subtitle"]',
   // The profile also has an empty div[data-e2e=user-more]; only the <button> is real.
@@ -25,17 +26,26 @@ const isBlocked = () =>
     document.querySelector(SEL.moreButton)?.parentElement?.parentElement?.querySelector(SEL.followButton)?.getAttribute("aria-label") ?? "",
   );
 
-/** Author of the comment owning this header, or null if missing/ambiguous. */
+/** Author of the comment owning this name span, or null if missing/ambiguous. */
 export function authorOf(user: Element) {
-  const hrefs = new Set(Array.from(user.querySelectorAll(SEL.authorLink), (a) => a.getAttribute("href")));
-  return hrefs.size === 1 ? parseProfileUrl([...hrefs][0]!) : null;
+  const link = user.closest(SEL.authorLink);
+  return parseProfileUrl(link?.getAttribute("href") ?? "");
+}
+
+/** The comment's own "..." trigger: nearest ancestor holding one, refusing to climb into a container shared with other comments. */
+function moreOf(user: Element) {
+  for (let el = user.parentElement; el; el = el.parentElement) {
+    if (el.querySelectorAll(SEL.commentUser).length > 1) return null;
+    const more = el.querySelector(SEL.moreTrigger);
+    if (more) return more;
+  }
+  return null;
 }
 
 export function inject(user: Element) {
-  const header = user.parentElement;
-  const more = header?.querySelector(SEL.moreTrigger);
+  const more = moreOf(user);
   const author = authorOf(user);
-  if (!header || !more || !author || header.querySelector(`[${MARK}]`)) return;
+  if (!more?.parentElement || !author || more.parentElement.querySelector(`[${MARK}]`)) return;
   const btn = makeButton(() => onClick(btn, author));
   btn.classList.add("tqb-sm");
   more.before(btn);

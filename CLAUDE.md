@@ -23,7 +23,7 @@ Threads flow:
 3. `blockFlow(card)` clicks that card's More icon, waits for the "Block" menu item, clicks it, then clicks the "Block" button in the confirmation dialog. `waitFor()` polls (1.5s timeout) and logs `[tqb]` warnings on failure.
 
 TikTok flow:
-1. `scan()` finds `[data-e2e^="comment-username-"]` headers; `inject()` puts a button before the header's `...` trigger, only if the header has exactly one valid `/@handle` link.
+1. `scan()` finds `[data-e2e^="comment-username-"]` name spans; `inject()` puts a button before that comment's `[aria-label="more"]` trigger (action column, beside Like), only if the name's enclosing `/@handle` link is valid.
 2. Click -> `onClick` sends `tqb-block` to `src/background.ts`, which re-validates the URL, opens the profile in an active temp tab (a hidden tab stalls TikTok's dialog), messages it `tqb-run`, and always closes only its own tab.
 3. `runProfile()` verifies the handle, opens the profile menu (never clicks `...` twice: it toggles), presses Block, checks the dialog names the handle, confirms, then reports `success` (button reads Unblock) / `already` / `uncertain` / `error`.
 

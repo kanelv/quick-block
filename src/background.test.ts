@@ -11,6 +11,7 @@ beforeEach(() => {
     tabs: {
       create: vi.fn(async () => ({ id: 7, status: "loading" })),
       remove: vi.fn(async () => {}),
+      update: vi.fn(async () => ({})),
       sendMessage: vi.fn(async () => ({ status: "success" })),
       onUpdated: { addListener: (f: L) => updated.push(f), removeListener: (f: L) => (updated = updated.filter((x) => x !== f)) },
       onRemoved: { addListener: (f: L) => removed.push(f), removeListener: (f: L) => (removed = removed.filter((x) => x !== f)) },
@@ -39,7 +40,7 @@ describe("blockViaTab", () => {
   });
 
   it("ignores updates from other tabs", async () => {
-    const p = blockViaTab("https://www.tiktok.com/@a", 50);
+    const p = blockViaTab("https://www.tiktok.com/@a", undefined, 50);
     await tick();
     updated.forEach((f) => f(99, { status: "complete" }));
     expect((await p).reason).toBe("timeout");
@@ -59,5 +60,13 @@ describe("blockViaTab", () => {
     const r = await blockViaTab("https://www.tiktok.com/@a");
     expect(r.reason).toMatch(/tab creation failed/);
     expect(chromeMock.tabs.remove).not.toHaveBeenCalled();
+  });
+
+  it("returns focus to the originating tab after closing the temp tab", async () => {
+    chromeMock.tabs.create.mockResolvedValue({ id: 7, status: "complete" });
+    expect((await blockViaTab("https://www.tiktok.com/@a", 3)).status).toBe("success");
+    await tick();
+    expect(chromeMock.tabs.create).toHaveBeenCalledWith(expect.objectContaining({ openerTabId: 3 }));
+    expect(chromeMock.tabs.update).toHaveBeenCalledWith(3, { active: true });
   });
 });

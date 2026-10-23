@@ -2,12 +2,17 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { parseProfileUrl } from "./shared";
 import { authorOf, runProfile, scan } from "./tiktok";
 
-// Trimmed from a real TikTok comment: header = [username | "..." trigger]; replies live in a sibling container.
-const comment = (lvl: number, links: string[], more = true) => `
+// Trimmed from a real TikTok comment: name span nested in the author link; "..." lives in a sibling action column.
+const comment = (lvl: number, href: string | null, more = true) => `
   <div class="item">
-    <div class="header">
-      <div data-e2e="comment-username-${lvl}">${links.map((h) => `<a href="${h}">x</a>`).join("")}</div>
-      ${more ? '<div aria-haspopup="dialog"><svg></svg></div>' : ""}
+    <a data-e2e="comment-avatar-${lvl}" ${href ? `href="${href}"` : ""}></a>
+    <div class="content">
+      <a ${href ? `href="${href}"` : ""}><span data-e2e="comment-username-${lvl}">name</span></a>
+      <p><a href="/@mentioned">@mentioned</a></p>
+    </div>
+    <div class="actions">
+      ${more ? '<div aria-label="more" role="button"><div data-e2e="comment-more-icon"></div></div>' : ""}
+      <div aria-label="Like video" role="button"></div>
     </div>
   </div>`;
 
@@ -25,44 +30,51 @@ describe("parseProfileUrl", () => {
 
 describe("injection", () => {
   it("inserts the button immediately before the native menu, for top-level and replies", () => {
-    document.body.innerHTML = comment(1, ["/@a"]) + comment(2, ["/@b"]);
+    document.body.innerHTML = comment(1, "/@a") + comment(2, "/@b");
     scan();
     const btns = document.querySelectorAll("[data-tqb]");
     expect(btns.length).toBe(2);
-    btns.forEach((b) => expect(b.nextElementSibling?.getAttribute("aria-haspopup")).toBe("dialog"));
+    btns.forEach((b) => expect(b.nextElementSibling?.getAttribute("aria-label")).toBe("more"));
   });
 
   it("scopes a reply's button to the reply, not the parent", () => {
-    document.body.innerHTML = `<div>${comment(1, ["/@parent"])}<div class="replies">${comment(2, ["/@child"])}</div></div>`;
+    document.body.innerHTML = `<div>${comment(1, "/@parent")}<div class="replies">${comment(2, "/@child")}</div></div>`;
     scan();
     expect(document.querySelectorAll("[data-tqb]").length).toBe(2);
-    expect(document.querySelectorAll(".header")[1].querySelectorAll("[data-tqb]").length).toBe(1);
+    expect(document.querySelectorAll(".actions")[1].querySelectorAll("[data-tqb]").length).toBe(1);
   });
 
   it("skips missing, ambiguous, or invalid author links and missing menus", () => {
-    document.body.innerHTML = comment(1, []) + comment(1, ["/@a", "/@b"]) + comment(1, ["/@a/video/1"]) + comment(1, ["/@c"], false);
+    document.body.innerHTML = comment(1, null) + comment(1, "/@a/video/1") + comment(1, "/@c", false);
     scan();
     expect(document.querySelectorAll("[data-tqb]").length).toBe(0);
   });
 
   it("does not double-inject on rescan", () => {
-    document.body.innerHTML = comment(1, ["/@a"]);
+    document.body.innerHTML = comment(1, "/@a");
     scan();
     scan();
     expect(document.querySelectorAll("[data-tqb]").length).toBe(1);
   });
 
   it("picks up dynamically added comments", () => {
-    document.body.innerHTML = comment(1, ["/@a"]);
+    document.body.innerHTML = comment(1, "/@a");
     scan();
-    document.body.insertAdjacentHTML("beforeend", comment(1, ["/@b"]));
+    document.body.insertAdjacentHTML("beforeend", comment(1, "/@b"));
     scan();
     expect(document.querySelectorAll("[data-tqb]").length).toBe(2);
   });
 
-  it("authorOf tolerates repeated identical links (avatar + name)", () => {
-    document.body.innerHTML = comment(1, ["/@a", "/@a"]);
-    expect(authorOf(document.querySelector("[data-e2e]")!)?.handle).toBe("a");
+  it("authorOf uses the name's own link, ignoring @mentions in the comment text", () => {
+    document.body.innerHTML = comment(1, "/@a");
+    expect(authorOf(document.querySelector("[data-e2e^=comment-username-]")!)?.handle).toBe("a");
+  });
+
+  it("does not borrow another comment's menu when its own is missing", () => {
+    document.body.innerHTML = `<div>${comment(1, "/@c", false)}${comment(1, "/@d")}</div>`;
+    scan();
+    expect(document.querySelectorAll("[data-tqb]").length).toBe(1);
+    expect(document.querySelector(".item:last-child [data-tqb]")).not.toBeNull();
   });
 });
 
